@@ -165,20 +165,25 @@
     background: var(--off-white);
   }
 
-  .hero-bg-decoration {
-    position: absolute; top: 0; right: 0; bottom: 0;
-    width: 50%;
-    background: linear-gradient(135deg, #FDF0E8 0%, #FEEADE 100%);
-    clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%);
-    z-index: 0;
+  .hero-bg-vineyard {
+    position: absolute; inset: 0; z-index: 0;
+    overflow: hidden;
   }
 
-  .hero-bg-pattern {
-    position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-    opacity: 0.03;
-    background-image: radial-gradient(circle, var(--orange) 1px, transparent 1px);
-    background-size: 40px 40px;
-    z-index: 0;
+  .hero-bg-vineyard svg {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .hero-bg-overlay {
+    position: absolute; inset: 0; z-index: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(250,249,247,0.97) 0%,
+      rgba(250,249,247,0.92) 40%,
+      rgba(250,249,247,0.55) 65%,
+      rgba(250,249,247,0.1) 100%
+    );
   }
 
   .hero-content {
@@ -378,53 +383,247 @@
     margin-top: 2px;
   }
 
-  /* ─── SEARCH BAR ─── */
-  #search-bar {
-    background: white;
-    padding: 0 5%;
-    margin-top: -1px;
-    border-bottom: 1px solid var(--gray-100);
+  /* ─── SEARCH BAR (inside propiedades) ─── */
+  .prop-search-wrap {
+    max-width: 1200px; margin: 0 auto 36px;
   }
 
-  .search-container {
-    display: flex; align-items: center; gap: 0;
-    max-width: 1100px; margin: 0 auto;
-    border: 1.5px solid var(--gray-300);
-    border-radius: var(--radius-md);
-    transform: translateY(-50%);
+  .prop-search-box {
+    display: flex; align-items: stretch;
     background: white;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-card);
     overflow: hidden;
+    transition: border-color var(--transition), box-shadow var(--transition);
   }
 
-  .search-field {
-    flex: 1; display: flex; align-items: center; gap: 10px;
-    padding: 16px 20px;
-    border-right: 1px solid var(--gray-100);
+  .prop-search-box.focused {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 4px rgba(232,98,26,0.08), var(--shadow-card);
   }
 
-  .search-field svg { width: 18px; height: 18px; stroke: var(--gray-500); fill: none; flex-shrink: 0; }
-
-  .search-field input, .search-field select {
-    border: none; outline: none; font-family: var(--font-body);
-    font-size: 14px; color: var(--gray-700); background: transparent;
-    width: 100%; font-weight: 400;
-  }
-
-  .search-field select { cursor: pointer; }
-
-  .search-btn {
-    background: var(--orange); color: white;
-    border: none; cursor: pointer; padding: 0 28px;
-    font-family: var(--font-body);
-    font-size: 14px; font-weight: 600;
-    height: 54px; white-space: nowrap;
+  .prop-search-field {
+    flex: 1; display: flex; align-items: center; gap: 12px;
+    padding: 18px 22px;
+    position: relative;
     transition: background var(--transition);
-    display: flex; align-items: center; gap: 8px;
+    min-width: 0;
   }
 
-  .search-btn:hover { background: var(--orange-dark); }
-  .search-btn svg { width: 16px; height: 16px; stroke: white; fill: none; }
+  .prop-search-field.active { background: var(--orange-pale); }
+
+  .psf-icon {
+    width: 36px; height: 36px; flex-shrink: 0;
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition);
+  }
+
+  .prop-search-field.active .psf-icon {
+    background: rgba(232,98,26,0.15);
+  }
+
+  .psf-icon svg { width: 16px; height: 16px; stroke: var(--gray-500); transition: stroke var(--transition); }
+  .prop-search-field.active .psf-icon svg { stroke: var(--orange); }
+
+  .psf-content { flex: 1; min-width: 0; }
+
+  .psf-label {
+    display: block; font-size: 10px; font-weight: 700;
+    color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 3px; transition: color var(--transition);
+  }
+
+  .prop-search-field.active .psf-label { color: var(--orange-dark); }
+
+  .psf-input {
+    width: 100%; border: none; outline: none;
+    font-family: var(--font-body); font-size: 14px; font-weight: 500;
+    color: var(--gray-900); background: transparent;
+    cursor: pointer;
+  }
+
+  .psf-divider {
+    width: 1px; background: var(--gray-100);
+    align-self: stretch; margin: 12px 0; flex-shrink: 0;
+  }
+
+  .psf-btn {
+    background: var(--orange); color: white;
+    border: none; cursor: pointer;
+    padding: 0 32px;
+    font-family: var(--font-body); font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 9px;
+    white-space: nowrap;
+    transition: all var(--transition);
+    letter-spacing: 0.3px;
+  }
+
+  .psf-btn:hover { background: var(--orange-dark); }
+  .psf-btn svg { width: 16px; height: 16px; stroke: white; fill: none; flex-shrink: 0; }
+
+  .prop-search-pills {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;
+    min-height: 0;
+  }
+
+  .search-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--orange);
+    color: white; font-size: 12px; font-weight: 600;
+    padding: 5px 12px; border-radius: 100px;
+    animation: pillIn 0.2s ease;
+  }
+
+  @keyframes pillIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .search-pill button {
+    background: none; border: none; color: white; cursor: pointer;
+    font-size: 14px; line-height: 1; padding: 0; opacity: 0.8;
+    transition: opacity var(--transition);
+  }
+
+  .search-pill button:hover { opacity: 1; }
+
+  @media (max-width: 768px) {
+    .prop-search-box { flex-direction: column; border-radius: var(--radius-md); }
+    .psf-divider { width: auto; height: 1px; margin: 0 12px; align-self: auto; }
+    .psf-btn { height: 52px; justify-content: center; border-radius: 0; }
+  }
+
+  /* ─── PROPERTY PREVIEW MODAL ─── */
+  .prop-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(28,25,22,0.6);
+    backdrop-filter: blur(6px);
+    z-index: 300;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .prop-modal {
+    background: white;
+    border-radius: var(--radius-lg);
+    max-width: 560px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 32px 100px rgba(0,0,0,0.25);
+    animation: modalUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+
+  @keyframes modalUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .prop-modal-close {
+    position: absolute; top: 14px; right: 14px; z-index: 10;
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.9);
+    border: none; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all var(--transition);
+  }
+
+  .prop-modal-close:hover { background: white; transform: scale(1.1); }
+  .prop-modal-close svg { width: 14px; height: 14px; stroke: var(--gray-700); fill: none; }
+
+  .prop-modal-image {
+    width: 100%; height: 240px;
+    background: var(--gray-100);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    overflow: hidden; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 80px;
+  }
+
+  .prop-modal-badge {
+    position: absolute; top: 14px; left: 14px;
+    padding: 5px 14px; border-radius: 100px;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+
+  .prop-modal-body { padding: 24px 28px 28px; }
+
+  .prop-modal-price {
+    font-family: var(--font-display);
+    font-size: 28px; font-weight: 700; color: var(--orange);
+    margin-bottom: 4px;
+  }
+
+  .prop-modal-title {
+    font-size: 18px; font-weight: 700; color: var(--gray-900);
+    line-height: 1.3; margin-bottom: 10px;
+  }
+
+  .prop-modal-location {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 13px; color: var(--gray-500); margin-bottom: 16px;
+  }
+
+  .prop-modal-location svg { width: 13px; height: 13px; stroke: var(--orange); fill: none; }
+
+  .prop-modal-desc {
+    font-size: 14px; color: var(--gray-500); line-height: 1.7;
+    margin-bottom: 18px;
+    padding-bottom: 18px; border-bottom: 1px solid var(--gray-100);
+  }
+
+  .prop-modal-features {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px; margin-bottom: 24px;
+  }
+
+  .prop-modal-feat {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--gray-50); border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 13px; font-weight: 600; color: var(--gray-700);
+  }
+
+  .prop-modal-feat svg { width: 15px; height: 15px; stroke: var(--orange); fill: none; flex-shrink: 0; }
+
+  .prop-modal-actions {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .prop-modal-btn-call {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px;
+    background: var(--orange); color: white;
+    border: none; border-radius: var(--radius-sm);
+    font-family: var(--font-body); font-size: 15px; font-weight: 700;
+    cursor: pointer; text-decoration: none;
+    transition: all var(--transition);
+  }
+
+  .prop-modal-btn-call:hover { background: var(--orange-dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(232,98,26,0.35); }
+  .prop-modal-btn-call svg { width: 17px; height: 17px; stroke: white; fill: none; }
+
+  .prop-modal-btn-link {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px;
+    background: white; color: var(--gray-900);
+    border: 2px solid var(--gray-300); border-radius: var(--radius-sm);
+    font-family: var(--font-body); font-size: 15px; font-weight: 700;
+    cursor: pointer; text-decoration: none;
+    transition: all var(--transition);
+  }
+
+  .prop-modal-btn-link:hover { border-color: var(--gray-700); transform: translateY(-1px); }
+  .prop-modal-btn-link svg { width: 15px; height: 15px; stroke: currentColor; fill: none; }
+
+  /* ─── OLD SEARCH BAR ─── */
+  #search-bar { display: none; }
 
   /* ─── SECTIONS COMMON ─── */
   section { padding: 80px 5%; }
@@ -1176,8 +1375,207 @@
 
 <!-- ─── HERO ─── -->
 <section id="hero">
-  <div class="hero-bg-decoration"></div>
-  <div class="hero-bg-pattern"></div>
+  <div class="hero-bg-vineyard">
+    <svg viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#c8daf0"/>
+          <stop offset="40%" stop-color="#ddeaf8"/>
+          <stop offset="100%" stop-color="#f0e8d8"/>
+        </linearGradient>
+        <linearGradient id="mt1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8ba3b8"/>
+          <stop offset="100%" stop-color="#a8bec9"/>
+        </linearGradient>
+        <linearGradient id="mt2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#9fb8c4"/>
+          <stop offset="100%" stop-color="#bdd0d8"/>
+        </linearGradient>
+        <linearGradient id="hillG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#6a9e5a"/>
+          <stop offset="100%" stop-color="#4e7d40"/>
+        </linearGradient>
+        <linearGradient id="vineG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3d7a2e"/>
+          <stop offset="100%" stop-color="#2d5e20"/>
+        </linearGradient>
+        <linearGradient id="soilG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#c4a97a"/>
+          <stop offset="100%" stop-color="#a8895a"/>
+        </linearGradient>
+        <linearGradient id="village" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#e8ddd0"/>
+          <stop offset="100%" stop-color="#d4c4b0"/>
+        </linearGradient>
+        <filter id="blur1"><feGaussianBlur stdDeviation="3"/></filter>
+        <filter id="blur2"><feGaussianBlur stdDeviation="1.5"/></filter>
+      </defs>
+      <!-- Sky -->
+      <rect width="1400" height="900" fill="url(#sky)"/>
+      <!-- Sun glow -->
+      <circle cx="1050" cy="160" r="120" fill="#fff8e8" opacity="0.5" filter="url(#blur1)"/>
+      <circle cx="1050" cy="160" r="60" fill="#fff0cc" opacity="0.7"/>
+      <!-- Clouds -->
+      <ellipse cx="900" cy="100" rx="120" ry="35" fill="white" opacity="0.7" filter="url(#blur2)"/>
+      <ellipse cx="980" cy="90" rx="80" ry="28" fill="white" opacity="0.6" filter="url(#blur2)"/>
+      <ellipse cx="1150" cy="130" rx="100" ry="32" fill="white" opacity="0.6" filter="url(#blur2)"/>
+      <ellipse cx="600" cy="80" rx="90" ry="26" fill="white" opacity="0.5" filter="url(#blur2)"/>
+      <!-- Far mountains -->
+      <path d="M0,420 L140,280 L280,380 L420,240 L560,340 L700,200 L840,320 L980,260 L1120,340 L1260,220 L1400,320 L1400,520 L0,520Z" fill="url(#mt1)" opacity="0.6" filter="url(#blur1)"/>
+      <path d="M0,460 L180,330 L340,420 L520,290 L680,400 L860,300 L1040,390 L1200,310 L1400,380 L1400,540 L0,540Z" fill="url(#mt2)" opacity="0.7"/>
+      <!-- Rolling hills mid -->
+      <path d="M0,550 Q200,470 400,510 Q600,550 800,490 Q1000,430 1200,480 Q1300,500 1400,470 L1400,680 L0,680Z" fill="url(#hillG)"/>
+      <!-- Village/town on hill -->
+      <g opacity="0.85">
+        <rect x="820" y="450" width="18" height="30" fill="url(#village)" rx="1"/>
+        <polygon points="820,450 829,436 838,450" fill="#c45a2a" opacity="0.9"/>
+        <rect x="844" y="458" width="14" height="22" fill="url(#village)" rx="1"/>
+        <polygon points="844,458 851,447 858,458" fill="#b84e22" opacity="0.9"/>
+        <rect x="862" y="454" width="16" height="26" fill="url(#village)" rx="1"/>
+        <polygon points="862,454 870,441 878,454" fill="#c45a2a" opacity="0.85"/>
+        <!-- Church tower -->
+        <rect x="892" y="436" width="12" height="44" fill="#e0d4c0" rx="1"/>
+        <polygon points="892,436 898,424 904,436" fill="#8b3a2a"/>
+        <rect x="895" y="442" width="6" height="8" fill="#6b9bba" rx="1"/>
+        <!-- More buildings -->
+        <rect x="908" y="452" width="15" height="28" fill="url(#village)" rx="1"/>
+        <polygon points="908,452 915.5,440 923,452" fill="#b84e22" opacity="0.8"/>
+        <rect x="927" y="456" width="13" height="24" fill="#ddd0bc" rx="1"/>
+        <polygon points="927,456 933.5,446 940,456" fill="#c45a2a" opacity="0.85"/>
+      </g>
+      <!-- Trees on hills -->
+      <g fill="#2d6e28" opacity="0.8">
+        <ellipse cx="760" cy="505" rx="18" ry="24"/>
+        <ellipse cx="780" cy="510" rx="14" ry="20"/>
+        <ellipse cx="800" cy="508" rx="16" ry="22"/>
+        <ellipse cx="960" cy="498" rx="16" ry="21"/>
+        <ellipse cx="978" cy="503" rx="12" ry="18"/>
+        <ellipse cx="1040" cy="490" rx="20" ry="26"/>
+        <ellipse cx="1065" cy="496" rx="15" ry="22"/>
+      </g>
+      <!-- Main vineyard soil strips -->
+      <path d="M-50,680 Q200,640 500,660 Q800,680 1100,650 Q1250,640 1450,660 L1450,900 L-50,900Z" fill="url(#soilG)"/>
+      <!-- Vineyard rows - perspective lines -->
+      <g opacity="0.9">
+        <!-- Row lines (soil paths between vines) -->
+        <path d="M0,750 Q350,720 700,740 Q1050,760 1400,730" stroke="#b89060" stroke-width="3" fill="none" opacity="0.5"/>
+        <path d="M0,790 Q350,755 700,778 Q1050,800 1400,768" stroke="#b89060" stroke-width="3" fill="none" opacity="0.45"/>
+        <path d="M0,830 Q350,792 700,818 Q1050,843 1400,808" stroke="#b89060" stroke-width="2.5" fill="none" opacity="0.4"/>
+        <!-- Vine plants -->
+        <!-- Row 1 ~y700 -->
+        <g fill="url(#vineG)">
+          <ellipse cx="80" cy="693" rx="22" ry="14"/>
+          <ellipse cx="80" cy="700" rx="18" ry="10"/>
+          <ellipse cx="160" cy="690" rx="22" ry="14"/>
+          <ellipse cx="160" cy="697" rx="18" ry="10"/>
+          <ellipse cx="240" cy="688" rx="22" ry="14"/>
+          <ellipse cx="320" cy="689" rx="22" ry="14"/>
+          <ellipse cx="400" cy="691" rx="22" ry="14"/>
+          <ellipse cx="480" cy="693" rx="22" ry="14"/>
+          <ellipse cx="560" cy="694" rx="22" ry="14"/>
+          <ellipse cx="640" cy="696" rx="22" ry="14"/>
+          <ellipse cx="720" cy="697" rx="22" ry="14"/>
+          <ellipse cx="800" cy="695" rx="22" ry="14"/>
+          <ellipse cx="880" cy="693" rx="22" ry="14"/>
+          <ellipse cx="960" cy="691" rx="22" ry="14"/>
+          <ellipse cx="1040" cy="690" rx="22" ry="14"/>
+          <ellipse cx="1120" cy="691" rx="22" ry="14"/>
+          <ellipse cx="1200" cy="692" rx="22" ry="14"/>
+          <ellipse cx="1280" cy="693" rx="22" ry="14"/>
+          <ellipse cx="1360" cy="692" rx="22" ry="14"/>
+        </g>
+        <!-- Row 2 ~y740 -->
+        <g fill="url(#vineG)" opacity="0.92">
+          <ellipse cx="60" cy="733" rx="24" ry="15"/>
+          <ellipse cx="140" cy="730" rx="24" ry="15"/>
+          <ellipse cx="220" cy="728" rx="24" ry="15"/>
+          <ellipse cx="300" cy="729" rx="24" ry="15"/>
+          <ellipse cx="380" cy="731" rx="24" ry="15"/>
+          <ellipse cx="460" cy="733" rx="24" ry="15"/>
+          <ellipse cx="540" cy="735" rx="24" ry="15"/>
+          <ellipse cx="620" cy="736" rx="24" ry="15"/>
+          <ellipse cx="700" cy="737" rx="24" ry="15"/>
+          <ellipse cx="780" cy="736" rx="24" ry="15"/>
+          <ellipse cx="860" cy="734" rx="24" ry="15"/>
+          <ellipse cx="940" cy="732" rx="24" ry="15"/>
+          <ellipse cx="1020" cy="731" rx="24" ry="15"/>
+          <ellipse cx="1100" cy="732" rx="24" ry="15"/>
+          <ellipse cx="1180" cy="733" rx="24" ry="15"/>
+          <ellipse cx="1260" cy="733" rx="24" ry="15"/>
+          <ellipse cx="1340" cy="732" rx="24" ry="15"/>
+        </g>
+        <!-- Row 3 ~y775 -->
+        <g fill="url(#vineG)" opacity="0.88">
+          <ellipse cx="50" cy="770" rx="26" ry="16"/>
+          <ellipse cx="130" cy="768" rx="26" ry="16"/>
+          <ellipse cx="210" cy="766" rx="26" ry="16"/>
+          <ellipse cx="290" cy="767" rx="26" ry="16"/>
+          <ellipse cx="370" cy="769" rx="26" ry="16"/>
+          <ellipse cx="450" cy="771" rx="26" ry="16"/>
+          <ellipse cx="530" cy="773" rx="26" ry="16"/>
+          <ellipse cx="610" cy="774" rx="26" ry="16"/>
+          <ellipse cx="690" cy="775" rx="26" ry="16"/>
+          <ellipse cx="770" cy="774" rx="26" ry="16"/>
+          <ellipse cx="850" cy="772" rx="26" ry="16"/>
+          <ellipse cx="930" cy="770" rx="26" ry="16"/>
+          <ellipse cx="1010" cy="769" rx="26" ry="16"/>
+          <ellipse cx="1090" cy="770" rx="26" ry="16"/>
+          <ellipse cx="1170" cy="771" rx="26" ry="16"/>
+          <ellipse cx="1250" cy="771" rx="26" ry="16"/>
+          <ellipse cx="1330" cy="770" rx="26" ry="16"/>
+        </g>
+        <!-- Row 4 ~y812 -->
+        <g fill="url(#vineG)" opacity="0.83">
+          <ellipse cx="45" cy="808" rx="28" ry="17"/>
+          <ellipse cx="125" cy="806" rx="28" ry="17"/>
+          <ellipse cx="205" cy="804" rx="28" ry="17"/>
+          <ellipse cx="285" cy="805" rx="28" ry="17"/>
+          <ellipse cx="365" cy="807" rx="28" ry="17"/>
+          <ellipse cx="445" cy="809" rx="28" ry="17"/>
+          <ellipse cx="525" cy="811" rx="28" ry="17"/>
+          <ellipse cx="605" cy="812" rx="28" ry="17"/>
+          <ellipse cx="685" cy="813" rx="28" ry="17"/>
+          <ellipse cx="765" cy="812" rx="28" ry="17"/>
+          <ellipse cx="845" cy="810" rx="28" ry="17"/>
+          <ellipse cx="925" cy="808" rx="28" ry="17"/>
+          <ellipse cx="1005" cy="807" rx="28" ry="17"/>
+          <ellipse cx="1085" cy="808" rx="28" ry="17"/>
+          <ellipse cx="1165" cy="809" rx="28" ry="17"/>
+          <ellipse cx="1245" cy="809" rx="28" ry="17"/>
+          <ellipse cx="1325" cy="808" rx="28" ry="17"/>
+        </g>
+        <!-- Trellis posts (vertical stakes) -->
+        <g stroke="#8b6a3a" stroke-width="1.5" opacity="0.5">
+          <line x1="80" y1="682" x2="80" y2="705"/>
+          <line x1="160" y1="679" x2="160" y2="702"/>
+          <line x1="240" y1="677" x2="240" y2="700"/>
+          <line x1="320" y1="678" x2="320" y2="701"/>
+          <line x1="400" y1="680" x2="400" y2="703"/>
+          <line x1="480" y1="682" x2="480" y2="705"/>
+          <line x1="560" y1="683" x2="560" y2="706"/>
+          <line x1="640" y1="685" x2="640" y2="708"/>
+          <line x1="720" y1="686" x2="720" y2="709"/>
+          <line x1="800" y1="684" x2="800" y2="707"/>
+          <line x1="880" y1="682" x2="880" y2="705"/>
+          <line x1="960" y1="680" x2="960" y2="703"/>
+          <line x1="1040" y1="679" x2="1040" y2="702"/>
+        </g>
+        <!-- Grape clusters (small purple dots) -->
+        <g fill="#6b3d8a" opacity="0.6">
+          <circle cx="74" cy="698" r="3"/><circle cx="80" cy="702" r="3"/><circle cx="86" cy="698" r="3"/>
+          <circle cx="154" cy="695" r="3"/><circle cx="160" cy="699" r="3"/><circle cx="166" cy="695" r="3"/>
+          <circle cx="394" cy="698" r="3"/><circle cx="400" cy="702" r="3"/><circle cx="406" cy="698" r="3"/>
+          <circle cx="634" cy="703" r="3"/><circle cx="640" cy="707" r="3"/><circle cx="646" cy="703" r="3"/>
+          <circle cx="874" cy="700" r="3"/><circle cx="880" cy="704" r="3"/><circle cx="886" cy="700" r="3"/>
+        </g>
+      </g>
+      <!-- Foreground dirt path -->
+      <path d="M580,900 Q680,830 780,900" fill="#c4a060" opacity="0.6"/>
+      <!-- Warm light overlay on right side -->
+      <rect x="700" y="0" width="700" height="900" fill="url(#sky)" opacity="0.15"/>
+    </svg>
+  </div>
+  <div class="hero-bg-overlay"></div>
 
   <div class="hero-content animate-in">
     <div class="hero-badge">
@@ -1240,46 +1638,63 @@
   </div>
 </section>
 
-<!-- ─── SEARCH BAR ─── -->
-<div id="search-bar">
-  <div class="search-container" style="transform: translateY(-28px)">
-    <div class="search-field">
-      <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
-      <input type="text" placeholder="Ciudad, barrio o dirección..." id="searchLocation">
-    </div>
-    <div class="search-field">
-      <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-      <select id="searchType">
-        <option value="">Tipo de propiedad</option>
-        <option>Piso</option>
-        <option>Chalet</option>
-        <option>Apartamento</option>
-        <option>Terreno</option>
-      </select>
-    </div>
-    <div class="search-field">
-      <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <select id="searchPrice">
-        <option value="">Precio máximo</option>
-        <option>Hasta 100.000€</option>
-        <option>Hasta 200.000€</option>
-        <option>Hasta 300.000€</option>
-        <option>Más de 300.000€</option>
-      </select>
-    </div>
-    <button class="search-btn" onclick="filterProperties()">
-      <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      Buscar
-    </button>
-  </div>
-</div>
-
 <!-- ─── PROPIEDADES ─── -->
 <section id="propiedades">
   <div class="section-header animate-in">
     <span class="section-tag">Inmuebles disponibles</span>
     <h2 class="section-title">Propiedades en La Rioja</h2>
     <p class="section-subtitle">Sincronizado automáticamente desde Idealista. Siempre actualizado.</p>
+  </div>
+
+  <!-- ─── SEARCH INSIDE PROPIEDADES ─── -->
+  <div class="prop-search-wrap animate-in">
+    <div class="prop-search-box" id="propSearchBox">
+      <div class="prop-search-field" id="sfLocation">
+        <div class="psf-icon">
+          <svg viewBox="0 0 24 24" stroke-width="2" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div class="psf-content">
+          <label class="psf-label">Ubicación</label>
+          <input type="text" class="psf-input" id="searchLocation" placeholder="Logroño, La Rioja..." oninput="liveFilter()" onfocus="focusField('sfLocation')" onblur="blurField('sfLocation')">
+        </div>
+      </div>
+      <div class="psf-divider"></div>
+      <div class="prop-search-field" id="sfType">
+        <div class="psf-icon">
+          <svg viewBox="0 0 24 24" stroke-width="2" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        </div>
+        <div class="psf-content">
+          <label class="psf-label">Tipo</label>
+          <select class="psf-input" id="searchType" onchange="liveFilter()" onfocus="focusField('sfType')" onblur="blurField('sfType')">
+            <option value="">Todos los tipos</option>
+            <option value="piso">Piso</option>
+            <option value="chalet">Chalet</option>
+            <option value="terreno">Terreno</option>
+          </select>
+        </div>
+      </div>
+      <div class="psf-divider"></div>
+      <div class="prop-search-field" id="sfPrice">
+        <div class="psf-icon">
+          <svg viewBox="0 0 24 24" stroke-width="2" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="psf-content">
+          <label class="psf-label">Precio máximo</label>
+          <select class="psf-input" id="searchPrice" onchange="liveFilter()" onfocus="focusField('sfPrice')" onblur="blurField('sfPrice')">
+            <option value="">Sin límite</option>
+            <option value="100000">100.000 €</option>
+            <option value="200000">200.000 €</option>
+            <option value="300000">300.000 €</option>
+            <option value="400000">400.000 €</option>
+          </select>
+        </div>
+      </div>
+      <button class="psf-btn" onclick="filterProperties()">
+        <svg viewBox="0 0 24 24" stroke-width="2.5" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        Buscar
+      </button>
+    </div>
+    <div class="prop-search-pills" id="activePills"></div>
   </div>
 
   <div class="properties-controls animate-in">
@@ -1586,6 +2001,36 @@
   </div>
 </footer>
 
+<!-- ─── PROPERTY PREVIEW MODAL ─── -->
+<div class="prop-modal-overlay" id="propModal" style="display:none" onclick="closePropModal(event)">
+  <div class="prop-modal" id="propModalInner">
+    <button class="prop-modal-close" onclick="closePropModal()">
+      <svg viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <div class="prop-modal-image" id="pmImage"></div>
+    <div class="prop-modal-body">
+      <div class="prop-modal-price" id="pmPrice"></div>
+      <div class="prop-modal-title" id="pmTitle"></div>
+      <div class="prop-modal-location" id="pmLocation">
+        <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span id="pmLocationText"></span>
+      </div>
+      <p class="prop-modal-desc" id="pmDesc"></p>
+      <div class="prop-modal-features" id="pmFeatures"></div>
+      <div class="prop-modal-actions">
+        <a href="tel:+34619424109" class="prop-modal-btn-call">
+          <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          Llamar
+        </a>
+        <a href="#" id="pmIdealistaLink" class="prop-modal-btn-link" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          Ir al anuncio
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ─── MODALES ─── -->
 <div class="modal-overlay" id="syncModal" style="display:none" onclick="closeSyncModal(event)">
   <div class="modal">
@@ -1789,7 +2234,7 @@ function renderProperties(filter = 'all') {
   }
 
   grid.innerHTML = filtered.map(p => `
-    <div class="property-card" onclick="openProperty('${p.url}')">
+    <div class="property-card" onclick="openPropModal(${p.id})">
       <div class="property-image">
         <div class="property-image-placeholder">${p.emoji}</div>
         <span class="property-badge badge-${p.estado === 'Reservado' ? 'reservado' : p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>
@@ -1835,6 +2280,42 @@ function renderProperties(filter = 'all') {
   document.getElementById('adminPropCount').textContent = properties.length;
 }
 
+function openPropModal(id) {
+  const p = properties.find(x => x.id === id);
+  if (!p) return;
+
+  // Image
+  const img = document.getElementById('pmImage');
+  img.innerHTML = `
+    <span style="font-size:80px">${p.emoji}</span>
+    <span class="prop-modal-badge badge-${p.estado === 'Reservado' ? 'reservado' : p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>
+  `;
+
+  document.getElementById('pmPrice').textContent = p.precio;
+  document.getElementById('pmTitle').textContent = p.titulo;
+  document.getElementById('pmLocationText').textContent = p.ubicacion;
+  document.getElementById('pmDesc').textContent = p.descripcion;
+
+  // Features
+  let feats = `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>${p.metros}</div>`;
+  if (p.habitaciones) feats += `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>${p.habitaciones} hab.</div>`;
+  if (p.banos) feats += `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a4 4 0 018 0v4"/></svg>${p.banos} baño${p.banos > 1 ? 's' : ''}</div>`;
+  if (p.garaje) feats += `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Garaje</div>`;
+  document.getElementById('pmFeatures').innerHTML = feats;
+
+  document.getElementById('pmIdealistaLink').href = p.url;
+
+  document.getElementById('propModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closePropModal(e) {
+  if (!e || e.target === document.getElementById('propModal')) {
+    document.getElementById('propModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
 function openProperty(url) {
   if (url && url.startsWith('http')) window.open(url, '_blank');
 }
@@ -1848,26 +2329,30 @@ function setFilter(filter, btn) {
 }
 
 function filterProperties() {
-  const loc = document.getElementById('searchLocation').value.toLowerCase();
-  const type = document.getElementById('searchType').value.toLowerCase();
+  const loc = (document.getElementById('searchLocation').value || '').toLowerCase();
+  const type = (document.getElementById('searchType').value || '').toLowerCase();
+  const priceMax = parseInt(document.getElementById('searchPrice').value) || Infinity;
 
   const filtered = properties.filter(p => {
     const matchLoc = !loc || p.ubicacion.toLowerCase().includes(loc) || p.titulo.toLowerCase().includes(loc);
-    const matchType = !type || p.tipo === type || p.titulo.toLowerCase().includes(type);
-    return matchLoc && matchType;
+    const matchType = !type || p.tipo === type;
+    const matchPrice = priceMax === Infinity || parseInt(p.precio.replace(/\D/g,'')) <= priceMax;
+    return matchLoc && matchType && matchPrice;
   });
 
   const grid = document.getElementById('propertiesGrid');
   if (filtered.length === 0) {
     grid.innerHTML = '<div class="no-properties"><p>No se encontraron propiedades con esos criterios.</p></div>';
+    updatePills();
     return;
   }
 
   grid.innerHTML = filtered.map(p => `
-    <div class="property-card" onclick="openProperty('${p.url}')">
+    <div class="property-card" onclick="openPropModal(${p.id})">
       <div class="property-image">
         <div class="property-image-placeholder">${p.emoji}</div>
-        <span class="property-badge badge-${p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>
+        <span class="property-badge badge-${p.estado === 'Reservado' ? 'reservado' : p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>
+        <span class="property-tag">${p.tipo.charAt(0).toUpperCase() + p.tipo.slice(1)}</span>
       </div>
       <div class="property-body">
         <div class="property-price">${p.precio}</div>
@@ -1879,9 +2364,10 @@ function filterProperties() {
         <p class="property-desc">${p.descripcion}</p>
         <div class="property-features">
           <span class="property-feature"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>${p.metros}</span>
+          ${p.habitaciones ? `<span class="property-feature"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>${p.habitaciones} hab.</span>` : ''}
         </div>
         <div class="property-cta">
-          <span class="property-link">Ver más <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+          <span class="property-link">Ver detalles <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
           <span class="property-source">Idealista</span>
         </div>
       </div>
@@ -1890,7 +2376,47 @@ function filterProperties() {
 
   document.getElementById('syncStatus').textContent = `${filtered.length} resultado(s) encontrado(s)`;
   document.getElementById('syncStatus').className = 'sync-status';
-  document.querySelector('#propiedades').scrollIntoView({ behavior: 'smooth' });
+  updatePills();
+}
+
+function liveFilter() {
+  filterProperties();
+}
+
+function focusField(id) {
+  document.getElementById(id).classList.add('active');
+  document.getElementById('propSearchBox').classList.add('focused');
+}
+
+function blurField(id) {
+  setTimeout(() => {
+    document.getElementById(id).classList.remove('active');
+    const anyActive = document.querySelectorAll('.prop-search-field.active').length > 0;
+    if (!anyActive) document.getElementById('propSearchBox').classList.remove('focused');
+  }, 150);
+}
+
+function updatePills() {
+  const pills = document.getElementById('activePills');
+  if (!pills) return;
+  const loc = document.getElementById('searchLocation').value.trim();
+  const type = document.getElementById('searchType').value;
+  const price = document.getElementById('searchPrice');
+  const priceLabel = price.options[price.selectedIndex].text;
+  const priceVal = price.value;
+
+  let html = '';
+  if (loc) html += `<span class="search-pill">${loc}<button onclick="clearField('searchLocation')" title="Quitar">×</button></span>`;
+  if (type) html += `<span class="search-pill">${type.charAt(0).toUpperCase()+type.slice(1)}<button onclick="clearField('searchType')" title="Quitar">×</button></span>`;
+  if (priceVal) html += `<span class="search-pill">Máx. ${priceLabel}<button onclick="clearField('searchPrice')" title="Quitar">×</button></span>`;
+  pills.innerHTML = html;
+}
+
+function clearField(id) {
+  const el = document.getElementById(id);
+  el.value = '';
+  filterProperties();
+  updatePills();
 }
 
 // ─── SYNC MODAL ───
@@ -2044,6 +2570,14 @@ window.addEventListener('scroll', () => {
     nav.style.boxShadow = '0 2px 20px rgba(0,0,0,0.08)';
   } else {
     nav.style.boxShadow = 'none';
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closePropModal();
+    closeSyncModal();
+    closeAdminModal();
   }
 });
 
