@@ -694,7 +694,7 @@
 
   .properties-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
     gap: 24px;
     max-width: 1200px; margin: 0 auto;
   }
@@ -837,6 +837,38 @@
 
   .sync-status.error { color: #DC2626; }
   .sync-status.success { color: #16A34A; }
+
+  .load-more-wrap {
+    text-align: center; margin-top: 36px;
+    max-width: 1200px; margin: 36px auto 0;
+  }
+
+  .load-more-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 32px;
+    background: white;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 14px; font-weight: 600;
+    color: var(--gray-700); cursor: pointer;
+    transition: all var(--transition);
+  }
+
+  .load-more-btn:hover {
+    border-color: var(--orange);
+    color: var(--orange);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(232,98,26,0.12);
+  }
+
+  .load-more-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; transition: transform var(--transition); }
+  .load-more-btn:hover svg { transform: translateY(2px); }
+
+  .load-more-count {
+    font-size: 13px; color: var(--gray-500);
+    margin-top: 10px;
+  }
 
   /* ─── NOSOTROS ─── */
   #nosotros {

@@ -17,6 +17,8 @@ PROFILE_URL = "https://www.idealista.com/pro/muro-inmobiliaria/"
 SECTIONS    = [
     "https://www.idealista.com/pro/muro-inmobiliaria/venta-viviendas/",
     "https://www.idealista.com/pro/muro-inmobiliaria/alquiler-viviendas/",
+    "https://www.idealista.com/pro/muro-inmobiliaria/venta-garajes/",
+    "https://www.idealista.com/pro/muro-inmobiliaria/venta-terrenos/",
 ]
 OUTPUT_FILE = Path("propiedades.json")
 
@@ -339,6 +341,8 @@ PROFILE_URL = "https://www.idealista.com/pro/muro-inmobiliaria/"
 SECTIONS = [
     "https://www.idealista.com/pro/muro-inmobiliaria/venta-viviendas/",
     "https://www.idealista.com/pro/muro-inmobiliaria/alquiler-viviendas/",
+    "https://www.idealista.com/pro/muro-inmobiliaria/venta-garajes/",
+    "https://www.idealista.com/pro/muro-inmobiliaria/venta-terrenos/",
     "https://www.idealista.com/pro/muro-inmobiliaria/venta-locales/",
     "https://www.idealista.com/pro/muro-inmobiliaria/venta-garajes/",
     "https://www.idealista.com/pro/muro-inmobiliaria/venta-terrenos/",

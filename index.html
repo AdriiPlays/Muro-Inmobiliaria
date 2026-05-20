@@ -338,6 +338,8 @@
             <option value="piso">Piso</option>
             <option value="chalet">Chalet</option>
             <option value="terreno">Terreno</option>
+            <option value="parcela">Parcela</option>
+            <option value="garaje">Garaje</option>
           </select>
         </div>
       </div>
@@ -371,6 +373,8 @@
       <button class="filter-tab" onclick="setFilter('piso', this)">Pisos</button>
       <button class="filter-tab" onclick="setFilter('chalet', this)">Chalets</button>
       <button class="filter-tab" onclick="setFilter('terreno', this)">Terrenos</button>
+      <button class="filter-tab" onclick="setFilter('parcela', this)">Parcelas</button>
+      <button class="filter-tab" onclick="setFilter('garaje', this)">Garajes</button>
     </div>
     <button class="sync-btn" onclick="showSyncModal()">
       <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -380,6 +384,14 @@
 
   <div class="properties-grid animate-in" id="propertiesGrid">
     <!-- Propiedades se cargan via JS -->
+  </div>
+
+  <div class="load-more-wrap" id="loadMoreWrap" style="display:none">
+    <button class="load-more-btn" onclick="loadMore()">
+      <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      Cargar más propiedades
+    </button>
+    <p class="load-more-count" id="loadMoreCount"></p>
   </div>
 
   <div class="sync-status" id="syncStatus"></div>
@@ -825,12 +837,15 @@ const FALLBACK_DATA = [
 ];
 
 // Mapa tipo/emoji para fallback visual cuando no hay imagen real
-const TIPO_EMOJI = { piso: '🏢', chalet: '🏠', terreno: '🌿', apartamento: '🏘️' };
+const TIPO_EMOJI = { piso: '🏢', chalet: '🏠', terreno: '🌿', apartamento: '🏘️', parcela: '📐', garaje: '🚗' };
 
 // ─── ESTADO ───
 let currentFilter = 'all';
 let properties = [];
 let adminLogEntries = [];
+let currentPage = 1;
+const PAGE_SIZE = 6;
+let currentFiltered = [];
 
 // ─── CARGA DE PROPIEDADES DESDE JSON ───
 async function loadProperties() {
@@ -849,15 +864,19 @@ async function loadProperties() {
       tipo: detectTipo(p.titulo || ''),
       titulo: cleanTitulo(p.titulo),
       precio: p.precio || 'Consultar',
-      ubicacion: p.ubicacion || 'La Rioja',
-      descripcion: p.descripcion || '',
+      address: p.address || p.ubicacion || 'La Rioja',
+      ubicacion: p.address || p.ubicacion || 'La Rioja',
+      descripcion: p.property_description || p.descripcion || '',
       metros: p.metros || extractMetros(p.titulo || ''),
       habitaciones: p.habitaciones || extractHabitaciones(p.titulo || ''),
-      banos: p.banos || null,
+      banos: p.bathroom_count || p.banos || null,
       garaje: p.garaje || false,
       operacion: detectOperacion(p.url || ''),
       estado: p.estado || null,
-      imagen: p.imagen || null,
+      imagen: p.imagen || (p.property_images && p.property_images[0]) || null,
+      property_images: p.property_images || [],
+      property_features: p.property_features || [],
+      property_equipment: p.property_equipment || [],
       url: p.url || 'https://www.idealista.com/pro/muro-inmobiliaria/'
     }));
 
@@ -881,10 +900,12 @@ async function loadProperties() {
 }
 
 function detectTipo(titulo) {
-  const t = titulo.toLowerCase();
-  if (t.includes('chalet') || t.includes('casa') || t.includes('villa')) return 'chalet';
-  if (t.includes('terreno') || t.includes('finca') || t.includes('solar') || t.includes('parcela')) return 'terreno';
-  if (t.includes('apartamento') || t.includes('estudio')) return 'apartamento';
+  const t = (titulo || '').toLowerCase();
+  if (t.includes('garaje') || t.includes('parking') || t.includes('plaza de') || t.includes('trastero')) return 'garaje';
+  if (t.includes('parcela') || t.includes('solar') || t.includes('suelo urbano')) return 'parcela';
+  if (t.includes('terreno') || t.includes('finca') || t.includes('rústic')) return 'terreno';
+  if (t.includes('chalet') || t.includes('casa') || t.includes('villa') || t.includes('adosado')) return 'chalet';
+  if (t.includes('apartamento') || t.includes('estudio') || t.includes('loft')) return 'apartamento';
   return 'piso';
 }
 
@@ -924,18 +945,9 @@ function imgHTML(p, height = '220px') {
   return `<div class="property-image-placeholder" style="height:${height}">${emoji}</div>`;
 }
 
-function renderProperties(filter = 'all') {
-  const grid = document.getElementById('propertiesGrid');
-  const filtered = filter === 'all'
-    ? properties
-    : properties.filter(p => p.tipo === filter);
-
-  if (filtered.length === 0) {
-    grid.innerHTML = '<div class="no-properties"><p style="font-size:16px; color:var(--gray-500)">No hay propiedades para este filtro en este momento.</p></div>';
-    return;
-  }
-
-  grid.innerHTML = filtered.map(p => `
+function cardHTML(p) {
+  const loc = p.address || p.ubicacion || 'La Rioja';
+  return `
     <div class="property-card" onclick="openPropModal(${p.id})">
       <div class="property-image" style="height:220px">
         ${imgHTML(p, '220px')}
@@ -947,9 +959,8 @@ function renderProperties(filter = 'all') {
         <div class="property-title">${p.titulo}</div>
         <div class="property-location">
           <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          ${p.ubicacion}
+          ${loc}
         </div>
-        <p class="property-desc">${p.descripcion}</p>
         <div class="property-features">
           ${p.metros ? `<span class="property-feature"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>${p.metros}</span>` : ''}
           ${p.habitaciones ? `<span class="property-feature"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>${p.habitaciones} hab.</span>` : ''}
@@ -961,11 +972,60 @@ function renderProperties(filter = 'all') {
           <span class="property-source">Idealista</span>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+}
+
+function renderProperties(filter = 'all') {
+  currentPage = 1;
+  currentFilter = filter;
+  currentFiltered = filter === 'all'
+    ? properties
+    : properties.filter(p => p.tipo === filter);
+
+  const grid = document.getElementById('propertiesGrid');
+  if (currentFiltered.length === 0) {
+    grid.innerHTML = '<div class="no-properties"><p style="font-size:16px;color:var(--gray-500)">No hay propiedades para este filtro en este momento.</p></div>';
+    document.getElementById('loadMoreWrap').style.display = 'none';
+    return;
+  }
+
+  const slice = currentFiltered.slice(0, PAGE_SIZE);
+  grid.innerHTML = slice.map(cardHTML).join('');
+  updateLoadMore();
 
   if (document.getElementById('adminPropCount')) {
     document.getElementById('adminPropCount').textContent = properties.length;
+  }
+}
+
+function loadMore() {
+  currentPage++;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const slice = currentFiltered.slice(start, start + PAGE_SIZE);
+  const grid = document.getElementById('propertiesGrid');
+  slice.forEach(p => {
+    grid.insertAdjacentHTML('beforeend', cardHTML(p));
+  });
+  updateLoadMore();
+}
+
+function updateLoadMore() {
+  const shown = Math.min(currentPage * PAGE_SIZE, currentFiltered.length);
+  const total = currentFiltered.length;
+  const wrap = document.getElementById('loadMoreWrap');
+  const countEl = document.getElementById('loadMoreCount');
+
+  if (shown < total) {
+    wrap.style.display = 'block';
+    countEl.textContent = `Mostrando ${shown} de ${total} propiedades`;
+  } else {
+    wrap.style.display = total > PAGE_SIZE ? 'block' : 'none';
+    if (countEl) countEl.textContent = total > PAGE_SIZE ? `Todas las propiedades mostradas (${total})` : '';
+    const btn = wrap.querySelector('.load-more-btn');
+    if (btn && shown >= total) {
+      btn.style.display = 'none';
+      wrap.querySelector('.load-more-count').style.marginTop = '0';
+    }
   }
 }
 
@@ -984,9 +1044,8 @@ function openPropModal(id) {
 
   document.getElementById('pmPrice').textContent = p.precio;
   document.getElementById('pmTitle').textContent = p.titulo;
-  document.getElementById('pmLocationText').textContent = p.ubicacion;
+  document.getElementById('pmLocationText').textContent = p.address || p.ubicacion || 'La Rioja';
   document.getElementById('pmDesc').textContent = p.descripcion;
-
   // Features
   let feats = `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>${p.metros}</div>`;
   if (p.habitaciones) feats += `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>${p.habitaciones} hab.</div>`;
@@ -1024,49 +1083,28 @@ function filterProperties() {
   const type = (document.getElementById('searchType').value || '').toLowerCase();
   const priceMax = parseInt(document.getElementById('searchPrice').value) || Infinity;
 
-  const filtered = properties.filter(p => {
-    const matchLoc = !loc || p.ubicacion.toLowerCase().includes(loc) || p.titulo.toLowerCase().includes(loc);
+  currentFiltered = properties.filter(p => {
+    const addr = (p.address || p.ubicacion || '').toLowerCase();
+    const matchLoc = !loc || addr.includes(loc) || p.titulo.toLowerCase().includes(loc);
     const matchType = !type || p.tipo === type;
     const matchPrice = priceMax === Infinity || parseInt(p.precio.replace(/\D/g,'')) <= priceMax;
     return matchLoc && matchType && matchPrice;
   });
 
+  currentPage = 1;
   const grid = document.getElementById('propertiesGrid');
-  if (filtered.length === 0) {
+
+  if (currentFiltered.length === 0) {
     grid.innerHTML = '<div class="no-properties"><p>No se encontraron propiedades con esos criterios.</p></div>';
+    document.getElementById('loadMoreWrap').style.display = 'none';
     updatePills();
     return;
   }
 
-  grid.innerHTML = filtered.map(p => `
-    <div class="property-card" onclick="openPropModal(${p.id})">
-      <div class="property-image">
-        <div class="property-image-placeholder">${p.emoji}</div>
-        <span class="property-badge badge-${p.estado === 'Reservado' ? 'reservado' : p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>
-        <span class="property-tag">${p.tipo.charAt(0).toUpperCase() + p.tipo.slice(1)}</span>
-      </div>
-      <div class="property-body">
-        <div class="property-price">${p.precio}</div>
-        <div class="property-title">${p.titulo}</div>
-        <div class="property-location">
-          <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
-          ${p.ubicacion}
-        </div>
-        <p class="property-desc">${p.descripcion}</p>
-        <div class="property-features">
-          <span class="property-feature"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>${p.metros}</span>
-          ${p.habitaciones ? `<span class="property-feature"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>${p.habitaciones} hab.</span>` : ''}
-        </div>
-        <div class="property-cta">
-          <span class="property-link">Ver detalles <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
-          <span class="property-source">Idealista</span>
-        </div>
-      </div>
-    </div>
-  `).join('');
-
-  document.getElementById('syncStatus').textContent = `${filtered.length} resultado(s) encontrado(s)`;
+  grid.innerHTML = currentFiltered.slice(0, PAGE_SIZE).map(cardHTML).join('');
+  document.getElementById('syncStatus').textContent = `${currentFiltered.length} resultado(s) encontrado(s)`;
   document.getElementById('syncStatus').className = 'sync-status';
+  updateLoadMore();
   updatePills();
 }
 
@@ -1201,15 +1239,19 @@ async function syncFromIdealista(token) {
       tipo: detectTipo(p.titulo || ''),
       titulo: cleanTitulo(p.titulo),
       precio: p.precio || 'Consultar',
-      ubicacion: p.ubicacion || 'La Rioja',
-      descripcion: p.descripcion || '',
+      address: p.address || p.ubicacion || 'La Rioja',
+      ubicacion: p.address || p.ubicacion || 'La Rioja',
+      descripcion: p.property_description || p.descripcion || '',
       metros: p.metros || extractMetros(p.titulo || ''),
       habitaciones: p.habitaciones || extractHabitaciones(p.titulo || ''),
-      banos: p.banos || null,
+      banos: p.bathroom_count || p.banos || null,
       garaje: p.garaje || false,
       operacion: detectOperacion(p.url || ''),
       estado: p.estado || null,
-      imagen: p.imagen || null,
+      imagen: p.imagen || (p.property_images && p.property_images[0]) || null,
+      property_images: p.property_images || [],
+      property_features: p.property_features || [],
+      property_equipment: p.property_equipment || [],
       url: p.url || 'https://www.idealista.com/pro/muro-inmobiliaria/'
     }));
 
