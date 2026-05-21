@@ -340,6 +340,7 @@
             <option value="terreno">Terreno</option>
             <option value="parcela">Parcela</option>
             <option value="garaje">Garaje</option>
+            <option value="local">Local</option>
           </select>
         </div>
       </div>
@@ -375,6 +376,7 @@
       <button class="filter-tab" onclick="setFilter('terreno', this)">Terrenos</button>
       <button class="filter-tab" onclick="setFilter('parcela', this)">Parcelas</button>
       <button class="filter-tab" onclick="setFilter('garaje', this)">Garajes</button>
+      <button class="filter-tab" onclick="setFilter('local', this)">Locales</button>
     </div>
     <button class="sync-btn" onclick="showSyncModal()">
       <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -387,7 +389,7 @@
   </div>
 
   <div class="load-more-wrap" id="loadMoreWrap" style="display:none">
-    <button class="load-more-btn" onclick="loadMore()">
+    <button class="load-more-btn" id="loadMoreBtn" onclick="loadMore()">
       <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
       Cargar más propiedades
     </button>
@@ -837,15 +839,39 @@ const FALLBACK_DATA = [
 ];
 
 // Mapa tipo/emoji para fallback visual cuando no hay imagen real
-const TIPO_EMOJI = { piso: '🏢', chalet: '🏠', terreno: '🌿', apartamento: '🏘️', parcela: '📐', garaje: '🚗' };
+const TIPO_EMOJI = { piso: '🏢', chalet: '🏠', terreno: '🌿', apartamento: '🏘️', parcela: '📐', garaje: '🚗', local: '🏪' };
 
 // ─── ESTADO ───
 let currentFilter = 'all';
 let properties = [];
 let adminLogEntries = [];
-let currentPage = 1;
+let _currentFiltered = [];   // lista activa (post-filtro)
+let _shownCount = 0;         // cuántas tarjetas hay visibles ahora
 const PAGE_SIZE = 6;
-let currentFiltered = [];
+
+// ─── NORMALIZAR PROPIEDAD ───
+function normalizeProp(p, i) {
+  const ubicacion = p.address || p.ubicacion || 'La Rioja';
+  return {
+    id: i + 1,
+    tipo: detectTipo(p.titulo || ''),
+    titulo: cleanTitulo(p.titulo),
+    precio: p.precio || 'Consultar',
+    ubicacion,                      // campo único, siempre relleno
+    descripcion: p.property_description || p.descripcion || '',
+    metros: p.metros || extractMetros(p.titulo || ''),
+    habitaciones: p.habitaciones || extractHabitaciones(p.titulo || ''),
+    banos: p.bathroom_count || p.banos || null,
+    garaje: p.garaje || false,
+    operacion: detectOperacion(p.url || ''),
+    estado: p.estado || null,
+    imagen: p.imagen || (Array.isArray(p.property_images) && p.property_images[0]) || null,
+    property_images: p.property_images || [],
+    property_features: p.property_features || [],
+    property_equipment: p.property_equipment || [],
+    url: p.url || 'https://www.idealista.com/pro/muro-inmobiliaria/'
+  };
+}
 
 // ─── CARGA DE PROPIEDADES DESDE JSON ───
 async function loadProperties() {
@@ -858,27 +884,7 @@ async function loadProperties() {
     if (!resp.ok) throw new Error('JSON no encontrado');
     const raw = await resp.json();
 
-    // Normaliza campos del JSON del scraper al formato interno
-    properties = raw.map((p, i) => ({
-      id: i + 1,
-      tipo: detectTipo(p.titulo || ''),
-      titulo: cleanTitulo(p.titulo),
-      precio: p.precio || 'Consultar',
-      address: p.address || p.ubicacion || 'La Rioja',
-      ubicacion: p.address || p.ubicacion || 'La Rioja',
-      descripcion: p.property_description || p.descripcion || '',
-      metros: p.metros || extractMetros(p.titulo || ''),
-      habitaciones: p.habitaciones || extractHabitaciones(p.titulo || ''),
-      banos: p.bathroom_count || p.banos || null,
-      garaje: p.garaje || false,
-      operacion: detectOperacion(p.url || ''),
-      estado: p.estado || null,
-      imagen: p.imagen || (p.property_images && p.property_images[0]) || null,
-      property_images: p.property_images || [],
-      property_features: p.property_features || [],
-      property_equipment: p.property_equipment || [],
-      url: p.url || 'https://www.idealista.com/pro/muro-inmobiliaria/'
-    }));
+    properties = raw.map((p, i) => normalizeProp(p, i));
 
     adminLogEntries.push(`<p><span class="log-time">[${now()}]</span> ✅ ${properties.length} propiedades cargadas desde propiedades.json</p>`);
     document.getElementById('syncStatus').textContent = '';
@@ -901,6 +907,7 @@ async function loadProperties() {
 
 function detectTipo(titulo) {
   const t = (titulo || '').toLowerCase();
+  if (t.includes('local') || t.includes('oficina') || t.includes('nave') || t.includes('comercial')) return 'local';
   if (t.includes('garaje') || t.includes('parking') || t.includes('plaza de') || t.includes('trastero')) return 'garaje';
   if (t.includes('parcela') || t.includes('solar') || t.includes('suelo urbano')) return 'parcela';
   if (t.includes('terreno') || t.includes('finca') || t.includes('rústic')) return 'terreno';
@@ -946,7 +953,6 @@ function imgHTML(p, height = '220px') {
 }
 
 function cardHTML(p) {
-  const loc = p.address || p.ubicacion || 'La Rioja';
   return `
     <div class="property-card" onclick="openPropModal(${p.id})">
       <div class="property-image" style="height:220px">
@@ -959,7 +965,7 @@ function cardHTML(p) {
         <div class="property-title">${p.titulo}</div>
         <div class="property-location">
           <svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          ${loc}
+          ${p.ubicacion}
         </div>
         <div class="property-features">
           ${p.metros ? `<span class="property-feature"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>${p.metros}</span>` : ''}
@@ -976,98 +982,57 @@ function cardHTML(p) {
 }
 
 function renderProperties(filter = 'all') {
-  currentPage = 1;
   currentFilter = filter;
-  currentFiltered = filter === 'all'
+  _currentFiltered = filter === 'all'
     ? properties
     : properties.filter(p => p.tipo === filter);
+  _shownCount = 0;
+  document.getElementById('propertiesGrid').innerHTML = '';
+  appendCards(PAGE_SIZE);
+  if (document.getElementById('adminPropCount'))
+    document.getElementById('adminPropCount').textContent = properties.length;
+}
 
+function appendCards(n) {
   const grid = document.getElementById('propertiesGrid');
-  if (currentFiltered.length === 0) {
-    grid.innerHTML = '<div class="no-properties"><p style="font-size:16px;color:var(--gray-500)">No hay propiedades para este filtro en este momento.</p></div>';
-    document.getElementById('loadMoreWrap').style.display = 'none';
+  if (_currentFiltered.length === 0) {
+    grid.innerHTML = '<div class="no-properties"><p style="font-size:16px;color:var(--gray-500)">No hay propiedades para este filtro.</p></div>';
+    _updateLoadMore();
     return;
   }
-
-  const slice = currentFiltered.slice(0, PAGE_SIZE);
-  grid.innerHTML = slice.map(cardHTML).join('');
-  updateLoadMore();
-
-  if (document.getElementById('adminPropCount')) {
-    document.getElementById('adminPropCount').textContent = properties.length;
-  }
+  const slice = _currentFiltered.slice(_shownCount, _shownCount + n);
+  slice.forEach(p => grid.insertAdjacentHTML('beforeend', cardHTML(p)));
+  _shownCount += slice.length;
+  _updateLoadMore();
 }
 
 function loadMore() {
-  currentPage++;
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const slice = currentFiltered.slice(start, start + PAGE_SIZE);
-  const grid = document.getElementById('propertiesGrid');
-  slice.forEach(p => {
-    grid.insertAdjacentHTML('beforeend', cardHTML(p));
-  });
-  updateLoadMore();
+  appendCards(PAGE_SIZE);
 }
 
-function updateLoadMore() {
-  const shown = Math.min(currentPage * PAGE_SIZE, currentFiltered.length);
-  const total = currentFiltered.length;
-  const wrap = document.getElementById('loadMoreWrap');
-  const countEl = document.getElementById('loadMoreCount');
+function _updateLoadMore() {
+  const wrap  = document.getElementById('loadMoreWrap');
+  const btn   = document.getElementById('loadMoreBtn');
+  const count = document.getElementById('loadMoreCount');
+  if (!wrap) return;
 
-  if (shown < total) {
-    wrap.style.display = 'block';
-    countEl.textContent = `Mostrando ${shown} de ${total} propiedades`;
+  const total  = _currentFiltered.length;
+  const shown  = _shownCount;
+  const remain = total - shown;
+
+  if (total === 0) { wrap.style.display = 'none'; return; }
+
+  wrap.style.display = 'block';
+
+  if (remain > 0) {
+    btn.style.display = 'inline-flex';
+    btn.textContent = '';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg> Cargar más (${remain} restantes)`;
+    count.textContent = `Mostrando ${shown} de ${total}`;
   } else {
-    wrap.style.display = total > PAGE_SIZE ? 'block' : 'none';
-    if (countEl) countEl.textContent = total > PAGE_SIZE ? `Todas las propiedades mostradas (${total})` : '';
-    const btn = wrap.querySelector('.load-more-btn');
-    if (btn && shown >= total) {
-      btn.style.display = 'none';
-      wrap.querySelector('.load-more-count').style.marginTop = '0';
-    }
+    btn.style.display = 'none';
+    count.textContent = total > PAGE_SIZE ? `Todas las propiedades mostradas (${total})` : '';
   }
-}
-
-function openPropModal(id) {
-  const p = properties.find(x => x.id === id);
-  if (!p) return;
-
-  // Image
-  const img = document.getElementById('pmImage');
-  const emoji = TIPO_EMOJI[p.tipo] || '🏠';
-  img.innerHTML = p.imagen
-    ? `<img src="${p.imagen}" alt="${p.titulo}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span style=\\'font-size:80px\\'>${emoji}</span>')">
-       <span class="prop-modal-badge badge-${p.estado === 'Reservado' ? 'reservado' : p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>`
-    : `<span style="font-size:80px">${emoji}</span>
-       <span class="prop-modal-badge badge-${p.estado === 'Reservado' ? 'reservado' : p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>`;
-
-  document.getElementById('pmPrice').textContent = p.precio;
-  document.getElementById('pmTitle').textContent = p.titulo;
-  document.getElementById('pmLocationText').textContent = p.address || p.ubicacion || 'La Rioja';
-  document.getElementById('pmDesc').textContent = p.descripcion;
-  // Features
-  let feats = `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>${p.metros}</div>`;
-  if (p.habitaciones) feats += `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>${p.habitaciones} hab.</div>`;
-  if (p.banos) feats += `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a4 4 0 018 0v4"/></svg>${p.banos} baño${p.banos > 1 ? 's' : ''}</div>`;
-  if (p.garaje) feats += `<div class="prop-modal-feat"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Garaje</div>`;
-  document.getElementById('pmFeatures').innerHTML = feats;
-
-  document.getElementById('pmIdealistaLink').href = p.url;
-
-  document.getElementById('propModal').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
-
-function closePropModal(e) {
-  if (!e || e.target === document.getElementById('propModal')) {
-    document.getElementById('propModal').style.display = 'none';
-    document.body.style.overflow = '';
-  }
-}
-
-function openProperty(url) {
-  if (url && url.startsWith('http')) window.open(url, '_blank');
 }
 
 // ─── FILTROS ───
@@ -1079,38 +1044,36 @@ function setFilter(filter, btn) {
 }
 
 function filterProperties() {
-  const loc = (document.getElementById('searchLocation').value || '').toLowerCase();
-  const type = (document.getElementById('searchType').value || '').toLowerCase();
+  const loc      = (document.getElementById('searchLocation').value || '').toLowerCase();
+  const type     = (document.getElementById('searchType').value || '');
   const priceMax = parseInt(document.getElementById('searchPrice').value) || Infinity;
 
-  currentFiltered = properties.filter(p => {
-    const addr = (p.address || p.ubicacion || '').toLowerCase();
-    const matchLoc = !loc || addr.includes(loc) || p.titulo.toLowerCase().includes(loc);
-    const matchType = !type || p.tipo === type;
-    const matchPrice = priceMax === Infinity || parseInt(p.precio.replace(/\D/g,'')) <= priceMax;
+  _currentFiltered = properties.filter(p => {
+    const loc_str  = (p.ubicacion || '').toLowerCase();
+    const matchLoc   = !loc  || loc_str.includes(loc) || p.titulo.toLowerCase().includes(loc);
+    const matchType  = !type || p.tipo === type;
+    const matchPrice = priceMax === Infinity || parseInt((p.precio || '').replace(/\D/g, '')) <= priceMax;
     return matchLoc && matchType && matchPrice;
   });
 
-  currentPage = 1;
-  const grid = document.getElementById('propertiesGrid');
+  _shownCount = 0;
+  document.getElementById('propertiesGrid').innerHTML = '';
 
-  if (currentFiltered.length === 0) {
-    grid.innerHTML = '<div class="no-properties"><p>No se encontraron propiedades con esos criterios.</p></div>';
-    document.getElementById('loadMoreWrap').style.display = 'none';
+  if (_currentFiltered.length === 0) {
+    document.getElementById('propertiesGrid').innerHTML = '<div class="no-properties"><p>No se encontraron propiedades con esos criterios.</p></div>';
+    document.getElementById('syncStatus').textContent = '0 resultados';
+    _updateLoadMore();
     updatePills();
     return;
   }
 
-  grid.innerHTML = currentFiltered.slice(0, PAGE_SIZE).map(cardHTML).join('');
-  document.getElementById('syncStatus').textContent = `${currentFiltered.length} resultado(s) encontrado(s)`;
+  appendCards(PAGE_SIZE);
+  document.getElementById('syncStatus').textContent = `${_currentFiltered.length} resultado(s) encontrado(s)`;
   document.getElementById('syncStatus').className = 'sync-status';
-  updateLoadMore();
   updatePills();
 }
 
-function liveFilter() {
-  filterProperties();
-}
+function liveFilter() { filterProperties(); }
 
 function focusField(id) {
   document.getElementById(id).classList.add('active');
@@ -1128,24 +1091,71 @@ function blurField(id) {
 function updatePills() {
   const pills = document.getElementById('activePills');
   if (!pills) return;
-  const loc = document.getElementById('searchLocation').value.trim();
-  const type = document.getElementById('searchType').value;
-  const price = document.getElementById('searchPrice');
-  const priceLabel = price.options[price.selectedIndex].text;
+  const loc      = document.getElementById('searchLocation').value.trim();
+  const type     = document.getElementById('searchType').value;
+  const price    = document.getElementById('searchPrice');
   const priceVal = price.value;
+  const priceLabel = price.options[price.selectedIndex].text;
 
   let html = '';
-  if (loc) html += `<span class="search-pill">${loc}<button onclick="clearField('searchLocation')" title="Quitar">×</button></span>`;
-  if (type) html += `<span class="search-pill">${type.charAt(0).toUpperCase()+type.slice(1)}<button onclick="clearField('searchType')" title="Quitar">×</button></span>`;
-  if (priceVal) html += `<span class="search-pill">Máx. ${priceLabel}<button onclick="clearField('searchPrice')" title="Quitar">×</button></span>`;
+  if (loc)      html += `<span class="search-pill">${loc}<button onclick="clearField('searchLocation')">×</button></span>`;
+  if (type)     html += `<span class="search-pill">${type.charAt(0).toUpperCase()+type.slice(1)}<button onclick="clearField('searchType')">×</button></span>`;
+  if (priceVal) html += `<span class="search-pill">Máx. ${priceLabel}<button onclick="clearField('searchPrice')">×</button></span>`;
   pills.innerHTML = html;
 }
 
 function clearField(id) {
-  const el = document.getElementById(id);
-  el.value = '';
+  document.getElementById(id).value = '';
   filterProperties();
-  updatePills();
+}
+
+function openPropModal(id) {
+  const p = properties.find(x => x.id === id);
+  if (!p) return;
+
+  const img   = document.getElementById('pmImage');
+  const emoji = TIPO_EMOJI[p.tipo] || '🏠';
+  img.innerHTML = p.imagen
+    ? `<img src="${p.imagen}" alt="${p.titulo}" style="width:100%;height:100%;object-fit:cover"
+           onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span style=\\'font-size:80px\\'>${emoji}</span>')">
+       <span class="prop-modal-badge badge-${p.estado === 'Reservado' ? 'reservado' : p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>`
+    : `<span style="font-size:80px">${emoji}</span>
+       <span class="prop-modal-badge badge-${p.estado === 'Reservado' ? 'reservado' : p.operacion}">${p.estado || (p.operacion === 'venta' ? 'En Venta' : 'En Alquiler')}</span>`;
+
+  document.getElementById('pmPrice').textContent        = p.precio;
+  document.getElementById('pmTitle').textContent        = p.titulo;
+  document.getElementById('pmLocationText').textContent = p.ubicacion;
+
+  const descEl = document.getElementById('pmDesc');
+  if (p.descripcion && p.descripcion.trim() && p.descripcion !== p.ubicacion) {
+    descEl.textContent  = p.descripcion;
+    descEl.style.display = 'block';
+  } else {
+    descEl.style.display = 'none';
+  }
+
+  const svgM = `<svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>`;
+  const svgH = `<svg viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`;
+  const svgB = `<svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a4 4 0 018 0v4"/></svg>`;
+  const svgG = `<svg viewBox="0 0 24 24" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`;
+
+  let feats = '';
+  if (p.metros)       feats += `<div class="prop-modal-feat">${svgM}${p.metros}</div>`;
+  if (p.habitaciones) feats += `<div class="prop-modal-feat">${svgH}${p.habitaciones} hab.</div>`;
+  if (p.banos)        feats += `<div class="prop-modal-feat">${svgB}${p.banos} baño${p.banos > 1 ? 's' : ''}</div>`;
+  if (p.garaje)       feats += `<div class="prop-modal-feat">${svgG}Garaje</div>`;
+  document.getElementById('pmFeatures').innerHTML = feats;
+
+  document.getElementById('pmIdealistaLink').href = p.url;
+  document.getElementById('propModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closePropModal(e) {
+  if (!e || e.target === document.getElementById('propModal')) {
+    document.getElementById('propModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
 }
 
 // ─── SYNC MODAL ───
@@ -1234,26 +1244,7 @@ async function syncFromIdealista(token) {
     if (!resp.ok) throw new Error('propiedades.json no encontrado');
     const raw = await resp.json();
 
-    properties = raw.map((p, i) => ({
-      id: i + 1,
-      tipo: detectTipo(p.titulo || ''),
-      titulo: cleanTitulo(p.titulo),
-      precio: p.precio || 'Consultar',
-      address: p.address || p.ubicacion || 'La Rioja',
-      ubicacion: p.address || p.ubicacion || 'La Rioja',
-      descripcion: p.property_description || p.descripcion || '',
-      metros: p.metros || extractMetros(p.titulo || ''),
-      habitaciones: p.habitaciones || extractHabitaciones(p.titulo || ''),
-      banos: p.bathroom_count || p.banos || null,
-      garaje: p.garaje || false,
-      operacion: detectOperacion(p.url || ''),
-      estado: p.estado || null,
-      imagen: p.imagen || (p.property_images && p.property_images[0]) || null,
-      property_images: p.property_images || [],
-      property_features: p.property_features || [],
-      property_equipment: p.property_equipment || [],
-      url: p.url || 'https://www.idealista.com/pro/muro-inmobiliaria/'
-    }));
+    properties = raw.map((p, i) => normalizeProp(p, i));
 
     const now2 = new Date().toLocaleString('es-ES');
     statusEl.textContent = `✅ Último sync: ${now2} — ${properties.length} propiedades activas`;
